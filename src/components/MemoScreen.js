@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CheckBox from '@react-native-community/checkbox';
+import {useIsFocused} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import axios from 'axios';
 import * as React from 'react';
@@ -19,9 +20,12 @@ const Stack = createNativeStackNavigator();
 export const MemoListScreen = ({navigation}) => {
   const {setUser} = React.useContext(AppContext);
   const [memos, setMemos] = React.useState([]);
+  const [selectList, setSelectList] = React.useState([]);
+  const isFocused = useIsFocused();
+
   React.useEffect(() => {
     getMemoList();
-  }, []);
+  }, [isFocused]);
   const logout = () => {
     AsyncStorage.clear();
     setUser(null);
@@ -44,11 +48,8 @@ export const MemoListScreen = ({navigation}) => {
       text: memo.text,
     });
   };
-  const onRemove = id => e => {
-    console.log(id);
-    // axios
-    //   .delete(base_url + 'api/memos/' + id)
-    //   .then(response => setMemos(memos.filter(memo => memo._id !== id)));
+  const removeMemo = () => {
+    console.log(selectList);
   };
   const createMemo = () => {
     navigation.navigate('MemoDetail', {
@@ -61,19 +62,23 @@ export const MemoListScreen = ({navigation}) => {
   return (
     <View style={styles.bodyContainer}>
       <Text style={styles.appTitle}>Hello MemoList</Text>
-
-      <View style={styles.card}>
-        <View style={{width: '100%'}}>
-          <Button title=" + " onPress={createMemo} />
-          <Button title=" - " onPress={createMemo} />
+      <View style={styles.buttonContainer}>
+        <View style={styles.buttonBox}>
+          <Button title=" New Memo " onPress={createMemo} />
         </View>
+        <View style={styles.buttonBox}>
+          <Button title=" Delete Memo " onPress={removeMemo} />
+        </View>
+      </View>
+      <View style={styles.card}>
         <ScrollView contentContainerStyle={styles.listContainer}>
           {memos.map(memo => (
             <MemoListItem
               key={memo._id}
               {...memo}
               onClickMemo={onClickMemo}
-              onRemove={onRemove}
+              selectList={selectList}
+              setSelectList={setSelectList}
             />
           ))}
         </ScrollView>
@@ -82,14 +87,31 @@ export const MemoListScreen = ({navigation}) => {
   );
 };
 
-export const MemoListItem = ({_id, title, onClickMemo, onRemove}) => {
+export const MemoListItem = ({
+  _id,
+  title,
+  onClickMemo,
+  selectList,
+  setSelectList,
+}) => {
   const [isSelected, setSelection] = React.useState(false);
+  const changeSelect = value => {
+    if (value) {
+      let newlist = selectList;
+      newlist.push({_id: _id});
+      setSelectList(newlist);
+    } else {
+      let newlist = selectList.filter(item => item._id !== _id);
+      setSelectList(newlist);
+    }
+    setSelection(value);
+  };
 
   return (
     <View style={styles.container}>
       <CheckBox
         value={isSelected}
-        onValueChange={setSelection}
+        onValueChange={changeSelect}
         style={styles.checkbox}
       />
       <Text onPress={onClickMemo(_id)} style={styles.text}>
@@ -102,13 +124,49 @@ export const MemoDetailScreen = ({navigation, route}) => {
   const {_id, title, text} = route.params;
   const [newTitle, setNewTitle] = React.useState(title);
   const [newText, setNewText] = React.useState(text);
-  // const [isEdit, setIsEdit] = React.useState(Boolean(_id));
-  // console.log('isEditCheck');
-  // console.log(isEdit);
+  const onSave = async () => {
+    if (_id) {
+      const result = await axios.patch(
+        base_url + 'api/memos/' + _id,
+        {
+          title: newTitle,
+          text: newText,
+        },
+        {
+          withCredentials: true,
+        },
+      );
+      if (result.data.success) {
+        navigation.navigate('MemoList');
+      }
+    } else {
+      const result = await axios.post(
+        base_url + 'api/memos',
+        {
+          title: newTitle,
+          text: newText,
+        },
+        {
+          withCredentials: true,
+        },
+      );
+      if (result.data.success) {
+        navigation.navigate('MemoList');
+      }
+    }
+  };
 
   return (
     <View style={styles.bodyContainer}>
       <Text style={styles.appTitle}>Hello MemoDetail</Text>
+      <View style={styles.buttonContainer}>
+        <View style={styles.buttonBox}>
+          <Button title=" Save " onPress={onSave} />
+        </View>
+        <View style={styles.buttonBox}>
+          <Button title=" Cancel " />
+        </View>
+      </View>
       <View style={styles.card}>
         <View style={styles.inputContainer}>
           <TextInput
@@ -178,6 +236,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  buttonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonBox: {
+    flex: 1,
+    marginVertical: 10,
+    marginHorizontal: 20,
+  },
   text: {
     flex: 8,
     fontWeight: '500',
@@ -213,10 +281,7 @@ const styles = StyleSheet.create({
   buttons: {
     flexDirection: 'row',
   },
-  buttonContainer: {
-    marginVertical: 10,
-    marginHorizontal: 10,
-  },
+
   inputContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',

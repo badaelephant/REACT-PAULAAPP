@@ -3,7 +3,7 @@ import Styles from '../common/Styles';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import TodoScreen from './TodoScreen';
 import MemoScreen from './MemoScreen';
-import {AppContext} from '../common/AppContextProvider';
+import AlramScreen from './AlarmScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -18,6 +18,11 @@ function MainScreen() {
       <Tab.Screen
         name="Memo"
         component={MemoScreen}
+        options={{headerShown: false}}
+      />
+      <Tab.Screen
+        name="Alram"
+        component={AlramScreen}
         options={{headerShown: false}}
       />
     </Tab.Navigator>
