@@ -7,7 +7,6 @@ import {AppContext, AppContextProvider} from './common/AppContextProvider';
 import Spinner from 'react-native-loading-spinner-overlay';
 import {StyleSheet} from 'react-native';
 import axios from 'axios';
-
 const Stack = createNativeStackNavigator();
 
 function App() {
